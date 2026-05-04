@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 
 #include <set>
+#include <tuple>
 
 using namespace cpp_course;
 
@@ -114,6 +115,24 @@ TEST(MockLidarSensorTests, ReturnsExpectedNumberOfHitsWhenEveryBeamHits) {
     EXPECT_EQ(hits.size(), expected_hit_count(4));
 }
 
+TEST(MockLidarSensorTests, ReturnsEmptyScanWhenNoBeamHitsMap) {
+    const EmptyMap map;
+    const FixedPositionSensor sensor(test::make_position(0.0, 0.0, 0.0), test::make_orientation(0.0, 0.0));
+
+    const MockLidarSensor lidar(config_with(3), map, sensor);
+
+    EXPECT_TRUE(lidar.scan(test::make_orientation(0.0, 0.0)).empty());
+}
+
+TEST(MockLidarSensorTests, IgnoresOccupiedVoxelsPastMaximumBeamLength) {
+    const SingleVoxelMap map(25, 0, 0);
+    const FixedPositionSensor sensor(test::make_position(0.0, 0.0, 0.0), test::make_orientation(0.0, 0.0));
+
+    const MockLidarSensor lidar(config_with(1), map, sensor);
+
+    EXPECT_TRUE(lidar.scan(test::make_orientation(0.0, 0.0)).empty());
+}
+
 TEST(MockLidarSensorTests, HitCloserThanBeamLengthMinReturnsZeroDistance) {
     const SingleVoxelMap map(0, 0, 0);
     const FixedPositionSensor sensor(test::make_position(0.0, 0.0, 0.0), test::make_orientation(0.0, 0.0));
@@ -127,6 +146,64 @@ TEST(MockLidarSensorTests, HitCloserThanBeamLengthMinReturnsZeroDistance) {
     EXPECT_EQ(actual_distance, expected_distance)
         << "expected distance=" << expected_distance
         << ", actual distance=" << actual_distance;
+}
+
+TEST(MockLidarSensorTests, ReportsDistanceToFirstHitOnCenterBeam) {
+    const SingleVoxelMap map(5, 0, 0);
+    const FixedPositionSensor sensor(test::make_position(0.0, 0.0, 0.0), test::make_orientation(0.0, 0.0));
+
+    const MockLidarSensor lidar(config_with(1), map, sensor);
+    const ScanResults hits = lidar.scan(test::make_orientation(0.0, 0.0));
+
+    ASSERT_EQ(hits.size(), 1U);
+    EXPECT_NEAR(hits.front().distance.force_numerical_value_in(cm), 5.0, 0.11);
+    EXPECT_NEAR(test::degrees(hits.front().angle.horizontal), 0.0, 1e-9);
+    EXPECT_NEAR(test::degrees(hits.front().angle.altitude), 0.0, 1e-9);
+}
+
+TEST(MockLidarSensorTests, UsesRequestedScanOrientationForCenterBeam) {
+    const SingleVoxelMap map(0, 5, 0);
+    const FixedPositionSensor sensor(test::make_position(0.0, 0.0, 0.0), test::make_orientation(0.0, 0.0));
+
+    const MockLidarSensor lidar(config_with(1), map, sensor);
+    const ScanResults hits = lidar.scan(test::make_orientation(90.0, 0.0));
+
+    ASSERT_EQ(hits.size(), 1U);
+    EXPECT_NEAR(hits.front().distance.force_numerical_value_in(cm), 5.0, 0.11);
+    EXPECT_NEAR(test::degrees(hits.front().angle.horizontal), 90.0, 1e-9);
+    EXPECT_NEAR(test::degrees(hits.front().angle.altitude), 0.0, 1e-9);
+}
+
+TEST(MockLidarSensorTests, UsesSensorHeadingForTracingButReturnsRelativeBeamAngle) {
+    const SingleVoxelMap map(0, 5, 0);
+    const FixedPositionSensor sensor(test::make_position(0.0, 0.0, 0.0), test::make_orientation(90.0, 0.0));
+
+    const MockLidarSensor lidar(config_with(1), map, sensor);
+    const ScanResults hits = lidar.scan(test::make_orientation(0.0, 0.0));
+
+    ASSERT_EQ(hits.size(), 1U);
+    EXPECT_NEAR(hits.front().distance.force_numerical_value_in(cm), 5.0, 0.11);
+    EXPECT_NEAR(test::degrees(hits.front().angle.horizontal), 0.0, 1e-9);
+    EXPECT_NEAR(test::degrees(hits.front().angle.altitude), 0.0, 1e-9);
+
+    const Position3D reconstructed = test::hit_to_position(
+        sensor.position(),
+        test::absolute_beam(sensor.heading(), hits.front().angle),
+        hits.front().distance);
+    EXPECT_EQ(test::voxel_coordinates(reconstructed), (std::tuple{0, 5, 0}));
+}
+
+TEST(MockLidarSensorTests, SupportsAltitudeInRequestedScanOrientation) {
+    const SingleVoxelMap map(0, 0, 5);
+    const FixedPositionSensor sensor(test::make_position(0.0, 0.0, 0.0), test::make_orientation(0.0, 0.0));
+
+    const MockLidarSensor lidar(config_with(1), map, sensor);
+    const ScanResults hits = lidar.scan(test::make_orientation(0.0, 90.0));
+
+    ASSERT_EQ(hits.size(), 1U);
+    EXPECT_NEAR(hits.front().distance.force_numerical_value_in(cm), 5.0, 0.11);
+    EXPECT_NEAR(test::degrees(hits.front().angle.horizontal), 0.0, 1e-9);
+    EXPECT_NEAR(test::degrees(hits.front().angle.altitude), 90.0, 1e-9);
 }
 
 TEST(MockLidarSensorTests, ReconstructsHitVoxelsCorrectlyWithZeroHeading) {

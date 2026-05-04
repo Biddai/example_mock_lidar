@@ -1,121 +1,109 @@
 # Mock LiDAR Sensor
 
-A small C++20 project that models a mock LiDAR sensor scanning a 3D voxel occupancy map. The code is intended as a learning-friendly example of separating sensor interfaces from map data, using strongly typed physical units, and validating behavior with GoogleTest.
+An implementation for a mock LiDAR sensor scanning a 3D voxel occupancy map. The code is intended as a starting point for your Mapping Drone project in the 2026 "Advanced Topics in Programming" course.
 
-## What It Does
+Note: If you wish to use this implementation, you are responsible for adapting it to your project.
 
-The project loads a NumPy `.npy` voxel map, reads drone position and heading from an abstract position sensor, and simulates LiDAR beams by ray marching through the map. Each non-zero voxel is treated as occupied space. Scan results report the hit distance and the beam angle relative to the drone, so calling code can reconstruct world-space hit positions without receiving the drone's absolute heading directly from the LiDAR.
+The attached container includes all the requirements you will need to build and run this project.
 
-## Project Layout
+## What Is Included
+
+This project includes:
+
+- A mock LiDAR sensor implementation.
+- Interfaces for a 3D map, LiDAR sensor, and position sensor.
+- A voxel-grid map loader for `.npy` files.
+- Strongly typed position, distance, and angle units.
+- Example maps under `data_maps/`.
+- A small runnable example.
+- Unit tests using GoogleTest.
+
+Note - The implementation for PositionSensor is ad-hoc. In your project these will be different!
+## Project Structure
 
 ```text
-include/cpp_course/      Public interfaces and types
-src/                     Library implementation
-examples/                Runnable example program
-tests/                   GoogleTest unit tests
-data_maps/               Small sample occupancy maps
-.devcontainer/           Optional VS Code dev container
-CMakeLists.txt           CMake build definition
-CMakePresets.json        CMake preset for Ninja + vcpkg
-vcpkg.json               C++ dependency manifest
+include/cpp_course/      Public interfaces and type definitions
+src/                     Implementation files
+examples/                Example executable
+tests/                   Unit tests
+data_maps/               Example voxel maps
+.devcontainer/           Development container setup
+CMakeLists.txt           CMake build configuration
+CMakePresets.json        CMake preset configuration
+vcpkg.json               Dependency list
 ```
 
-## Requirements
+## Building the Project
 
-- C++20 compiler
-- CMake 3.20 or newer
-- Ninja
-- vcpkg
-
-The project dependencies are declared in `vcpkg.json`:
-
-- `mp-units`
-- `tinynpy`
-- `gtest`
-
-Set `VCPKG_ROOT` before configuring so the CMake preset can find the vcpkg toolchain file.
-
-PowerShell:
-
-```powershell
-$env:VCPKG_ROOT = "C:\path\to\vcpkg"
-```
-
-Bash:
-
-```bash
-export VCPKG_ROOT=/path/to/vcpkg
-```
-
-If you use the provided dev container, `VCPKG_ROOT` is set to `/usr/local/vcpkg`.
-
-## Build
-
-Configure and build with the default preset:
+Open the project inside the provided container, then run:
 
 ```bash
 cmake --preset default
 cmake --build --preset default
 ```
 
-Equivalent commands without presets:
+This creates the build output under the `build/` directory.
 
-```bash
-cmake -S . -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
-cmake --build build
-```
+## Running the Example
 
-On Windows PowerShell, the manual configure command is:
-
-```powershell
-cmake -S . -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
-cmake --build build
-```
-
-## Run the Example
-
-After building, run the example against the default sample map:
+After building, run:
 
 ```bash
 ./build/mock_lidar_test
 ```
 
-You can also pass a specific map:
+You can also run the example with a specific map:
 
 ```bash
 ./build/mock_lidar_test data_maps/five_voxels_y4_pattern.npy
 ```
 
-On Windows, the executable may be generated as:
+## Running the Tests
 
-```powershell
-.\build\mock_lidar_test.exe .\data_maps\five_voxels_y4_pattern.npy
-```
-
-## Run Tests
+Run all tests with:
 
 ```bash
 ctest --test-dir build --output-on-failure
 ```
 
-You can also run the test executable directly:
+Or run the test executable directly:
 
 ```bash
 ./build/cpp_course_tests
 ```
 
-## Core Concepts
+## Main Components
 
-- `IMap3D` abstracts a 3D occupancy map.
-- `VoxelGrid` implements `IMap3D` by loading a row-major 3D `.npy` array with shape `[X, Y, Z]`.
-- `IPositionSensor` abstracts the drone position and heading.
-- `MockLidarSensor` emits relative LiDAR hits by tracing beams through an `IMap3D`.
-- `Units.h` defines strong unit types for X, Y, Z lengths and horizontal/altitude angles using `mp-units`.
+`IMap3D` is the interface used by the LiDAR sensor to query whether a position in space is occupied.
 
-Map coordinates are interpreted in centimeters. A position such as `(2 cm, 4 cm, 2 cm)` maps to voxel index `(2, 4, 2)`. Out-of-bounds or negative coordinates are treated as empty space.
+`VoxelGrid` is an implementation of `IMap3D` that loads a 3D NumPy `.npy` file. The map is interpreted as a voxel grid, where each voxel represents 1 cm.
 
-## Notes for Publishing
+`IPositionSensor` provides the current position and heading of the drone.
 
-Generated build outputs and installed dependency trees are intentionally ignored by `.gitignore`. Commit the source files, CMake/vcpkg manifests, sample maps, tests, and documentation; leave `build/` and `vcpkg_installed/` out of the repository.
+`MockLidarSensor` scans the map by tracing beams from the drone position. It returns the distance and relative angle for each hit.
 
-Before publishing publicly, choose a license that matches how you want others to use the code.
+`Units.h` defines the physical units used by the project, including X/Y/Z lengths and horizontal/altitude angles.
+
+## Map Format
+
+The sample maps are stored in `data_maps/` as `.npy` files.
+
+Each map is expected to be a row-major 3D array with shape `[X, Y, Z]`. A value of `0` means empty space. A non-zero value means occupied space.
+
+Coordinates are interpreted in centimeters. For example, the position `(2 cm, 4 cm, 2 cm)` maps to voxel index `(2, 4, 2)`.
+
+Positions outside the map are treated as empty space.
+
+## Adapting This Code
+
+This code is intentionally written as a starting point, not as a complete Mapping Drone solution.
+
+Before using it in your project, consider:
+
+- Whether the map format matches your project.
+- Whether the LiDAR scan pattern matches your needs.
+- How your drone should convert relative LiDAR hits into world-space coordinates.
+- Whether the sensor interfaces should be extended.
+- What additional tests are required for your final implementation.
+
+Generated files such as `build/` and `vcpkg_installed/` should not be committed to your repository.
