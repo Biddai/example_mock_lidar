@@ -8,6 +8,8 @@ find_package(GTest CONFIG REQUIRED)
 
 add_library(cpp_course
     src/MockLidarSensor.cpp
+    src/SimulationContext.cpp
+    src/SparseTextMap.cpp
     src/VoxelGrid.cpp
 )
 
@@ -31,6 +33,8 @@ enable_testing()
 
 add_executable(cpp_course_tests
     tests/MockLidarSensorTests.cpp
+    tests/SimulationContextTests.cpp
+    tests/SparseTextMapTests.cpp
     tests/VoxelGridTests.cpp
 )
 target_link_libraries(cpp_course_tests
