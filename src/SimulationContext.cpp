@@ -56,14 +56,6 @@ void SimulationContext::applyElevate(PhysicalLength distance) noexcept {
     position_ = elevated_position(position_, distance);
 }
 
-Position3D SimulationContext::positionAfterAdvance(PhysicalLength distance) const noexcept {
-    return advanced_position(position_, heading_, distance);
-}
-
-Position3D SimulationContext::positionAfterElevate(PhysicalLength distance) const noexcept {
-    return elevated_position(position_, distance);
-}
-
 bool SimulationContext::wouldCollide(Position3D candidate, PhysicalLength radius) const {
     const double cx = candidate.x.force_numerical_value_in(cm);
     const double cy = candidate.y.force_numerical_value_in(cm);

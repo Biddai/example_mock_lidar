@@ -26,10 +26,6 @@ public:
     void applyAdvance(PhysicalLength distance) noexcept;
     void applyElevate(PhysicalLength distance) noexcept;
 
-    // Hypothetical pose after a movement, without mutating state.
-    [[nodiscard]] Position3D positionAfterAdvance(PhysicalLength distance) const noexcept;
-    [[nodiscard]] Position3D positionAfterElevate(PhysicalLength distance) const noexcept;
-
     // True if a sphere centered at `candidate` with the given radius overlaps
     // any occupied voxel of the ground-truth map. Uses sphere-AABB tests
     // against 1-cm voxel cubes.

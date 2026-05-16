@@ -88,16 +88,6 @@ TEST(SimulationContextTests, ApplyRotateAccumulatesHorizontalAngle) {
     EXPECT_NEAR(test::degrees(ctx.heading().horizontal), 25.0, 1e-9);
 }
 
-TEST(SimulationContextTests, PositionAfterAdvanceDoesNotMutateState) {
-    const EmptyMap map;
-    SimulationContext ctx(map,
-                          test::make_position(0.0, 0.0, 0.0),
-                          test::make_orientation(0.0, 0.0));
-    const auto preview = ctx.positionAfterAdvance(4.0 * cm);
-    EXPECT_NEAR(preview.x.force_numerical_value_in(cm), 4.0, 1e-9);
-    EXPECT_NEAR(ctx.position().x.force_numerical_value_in(cm), 0.0, 1e-9);
-}
-
 TEST(SimulationContextTests, WouldCollideTrueWhenSphereOverlapsOccupiedVoxel) {
     SparseTextMap map(10, 10, 10);
     map.setOccupied(5, 5, 5);
